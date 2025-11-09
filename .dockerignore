@@ -1,0 +1,26 @@
+# General
+.git
+.gitignore
+HOW_TO_RUN.md
+logs/
+*.log
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Node/Vite artifacts
+retro-terrain/node_modules/
+retro-terrain/dist/
+retro-terrain/dist-ssr/
+retro-terrain/.vite/
+retro-terrain/npm-debug.log*
+retro-terrain/yarn-debug.log*
+retro-terrain/pnpm-debug.log*
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
