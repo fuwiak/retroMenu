@@ -14,6 +14,9 @@ ENV VITE_YOUTUBE_API_KEY=${VITE_YOUTUBE_API_KEY}
 ENV VITE_VK_TOKEN=${VITE_VK_TOKEN}
 ENV VITE_YOUTUBEI_KEY=${VITE_YOUTUBEI_KEY}
 
+# System dependencies required for yt-dlp
+RUN apk add --no-cache python3
+
 # Install dependencies
 COPY retro-terrain/package.json retro-terrain/package-lock.json ./
 RUN npm ci
@@ -46,6 +49,9 @@ ENV NODE_ENV=production \
     VITE_YOUTUBE_API_KEY=${VITE_YOUTUBE_API_KEY} \
     VITE_VK_TOKEN=${VITE_VK_TOKEN} \
     VITE_YOUTUBEI_KEY=${VITE_YOUTUBEI_KEY}
+
+# System dependencies required for yt-dlp at runtime
+RUN apk add --no-cache python3
 
 # Install production dependencies for the server
 COPY retro-terrain/package.json retro-terrain/package-lock.json ./
