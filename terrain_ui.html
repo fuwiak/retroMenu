@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <title>Retro Terrain (final)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html,body {margin:0;height:100%;background:#000;overflow:hidden;}
+    canvas{display:block;}
+  </style>
+
+  <!-- Biblioteki (ładują się pierwsze) -->
+  <script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://unpkg.com/three@0.161.0/examples/js/postprocessing/FilmPass.js"></script>
+</head>
+<body>
+
+<!-- 🔽 Właściwy kod umieszczony NA KOŃCU, po bibliotekach -->
+<script>
+(function startWhenReady(){
+  if (typeof THREE === 'undefined') {
+    console.warn('THREE jeszcze się ładuje...');
+    return setTimeout(startWhenReady, 100);
+  }
+
+  const renderer = new THREE.WebGLRenderer({ antialias:false });
+  document.body.appendChild(renderer.domElement);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  resize();
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x000000, 0.05);
+
+  const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 300);
+  camera.position.set(0,6,10);
+  camera.lookAt(0,0,0);
+
+  // --- Siatka ---
+  const geom = new THREE.PlaneGeometry(200,200,200,200);
+  geom.rotateX(-Math.PI/2);
+  const mat = new THREE.ShaderMaterial({
+    uniforms:{uTime:{value:0}},
+    vertexShader:`
+      uniform float uTime;
+      void main(){
+        vec3 p=position;
+        p.y += (sin(p.x*0.25 + uTime*1.5)+cos(p.z*0.35 - uTime*1.2))*0.15;
+        p.z += uTime*2.0;
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);
+      }`,
+    fragmentShader:`void main(){gl_FragColor=vec4(0.2,1.0,0.6,1.0);}`,
+    wireframe:true
+  });
+  const mesh = new THREE.Mesh(geom,mat);
+  scene.add(mesh);
+
+  // --- Pierścień HUD ---
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(1.2,1.22,64,1,0,Math.PI/6),
+    new THREE.MeshBasicMaterial({color:0x00ff99,transparent:true,opacity:0.6})
+  );
+  ring.position.set(0,2.8,0);
+  ring.rotation.x=-Math.PI/2;
+  scene.add(ring);
+
+  // --- Postprocessing ---
+  const composer = new THREE.EffectComposer(renderer);
+  composer.addPass(new THREE.RenderPass(scene,camera));
+  const bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.8,0.8,0.85);
+  composer.addPass(bloom);
+  const film = new THREE.FilmPass(0.35,0.03,648,false);
+  composer.addPass(film);
+
+  let last = performance.now();
+  function tick(now){
+    const dt=(now-last)/1000; last=now;
+    mat.uniforms.uTime.value += dt*1.5;
+    ring.rotation.z -= dt*1.5;
+    composer.render();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  window.addEventListener('resize',resize);
+  function resize(){
+    const w=innerWidth,h=innerHeight;
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+    composer.setSize(w,h);
+  }
+})();
+</script>
+
+</body>
+</html>

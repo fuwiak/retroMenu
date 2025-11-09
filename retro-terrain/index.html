@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RETRO ANALYTICS CONSOLE</title>
+
+    <style>
+      :root {
+        --ui-color: #00ff99;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at 20% 20%, #020202, #000 90%);
+        color: var(--ui-color);
+        font-family: "Share Tech Mono", monospace;
+        overflow: hidden;
+      }
+
+      h1 {
+        text-align: center;
+        margin-top: 0.5rem;
+        text-shadow: 0 0 8px var(--ui-color);
+        letter-spacing: 2px;
+      }
+
+      /* === VIDEO PREVIEW === */
+      #videoSection {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 6px;
+        transition: all 0.4s ease;
+      }
+      #videoFrame {
+        width: 560px;
+        height: 315px;
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 10px var(--ui-color);
+        margin-top: 5px;
+        transition: all 0.4s ease, opacity 0.3s;
+      }
+      #videoFrame.hidden {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+      }
+
+      #toggleVideo {
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+        padding: 4px 10px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-family: inherit;
+      }
+      #toggleVideo:hover {
+        background: var(--ui-color);
+        color: #000;
+      }
+
+      #controls {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 1rem;
+      }
+
+      #controls input,
+      #controls select,
+      #controls button {
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+        padding: 5px 8px;
+        font-family: inherit;
+      }
+
+      #controls button:hover {
+        background: var(--ui-color);
+        color: #000;
+      }
+
+      #statusLine {
+        text-align: center;
+        font-size: 0.9rem;
+        text-shadow: 0 0 6px var(--ui-color);
+      }
+
+      #main-panels {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0.5rem;
+      }
+
+      .panel {
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 8px var(--ui-color);
+        padding: 6px;
+        flex: 1 1 45%;
+        min-width: 300px;
+        max-width: 600px;
+        background: rgba(0, 0, 0, 0.85);
+        position: relative;
+      }
+
+      .panel h2 {
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--ui-color);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .expand {
+        cursor: nwse-resize;
+        font-size: 0.8rem;
+      }
+
+      #wordChart {
+        width: 100%;
+        height: 240px;
+      }
+
+      #commentsList {
+        max-height: 280px;
+        overflow-y: auto;
+        font-size: 0.8rem;
+      }
+
+      /* LOG DRAWER */
+      #logToggle {
+        position: fixed;
+        bottom: 5px;
+        right: 10px;
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+        background: rgba(0, 0, 0, 0.6);
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        cursor: pointer;
+        text-shadow: 0 0 4px var(--ui-color);
+        z-index: 120;
+        transition: all 0.3s ease;
+      }
+      #logToggle:hover {
+        background: var(--ui-color);
+        color: #000;
+        transform: scale(1.05);
+      }
+      #logDrawer {
+        position: fixed;
+        right: 10px;
+        bottom: -300px;
+        width: 400px;
+        height: 300px;
+        background: rgba(0, 0, 0, 0.9);
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 12px var(--ui-color);
+        padding: 0.5rem;
+        transition: bottom 0.4s ease;
+        z-index: 110;
+        display: flex;
+        flex-direction: column;
+      }
+      #logDrawer.open {
+        bottom: 40px;
+      }
+
+      #logDrawer h2 {
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--ui-color);
+        text-align: center;
+        margin-bottom: 5px;
+      }
+      #logArea {
+        flex: 1;
+        overflow-y: auto;
+        font-size: 0.75rem;
+        line-height: 1.2rem;
+      }
+
+      /* TRENDING DRAWER */
+      #trendingToggle {
+        position: fixed;
+        top: 5px;
+        left: 10px;
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+        background: rgba(0, 0, 0, 0.6);
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        cursor: pointer;
+        text-shadow: 0 0 4px var(--ui-color);
+        z-index: 120;
+        transition: all 0.3s ease;
+      }
+      #trendingToggle:hover {
+        background: var(--ui-color);
+        color: #000;
+        transform: scale(1.05);
+      }
+      #trendingDrawer {
+        position: fixed;
+        left: 10px;
+        top: -450px;
+        width: 450px;
+        height: 450px;
+        background: rgba(0, 0, 0, 0.9);
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 12px var(--ui-color);
+        padding: 0.5rem;
+        transition: top 0.4s ease;
+        z-index: 110;
+        display: flex;
+        flex-direction: column;
+      }
+      #trendingDrawer.open {
+        top: 40px;
+      }
+
+      #trendingDrawer h2 {
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--ui-color);
+        text-align: center;
+        margin-bottom: 5px;
+      }
+
+      /* SUBTITLES DRAWER */
+      #subtitlesToggle {
+        position: fixed;
+        bottom: 5px;
+        left: 10px;
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+        background: rgba(0, 0, 0, 0.6);
+        font-size: 0.8rem;
+        padding: 3px 8px;
+        cursor: pointer;
+        text-shadow: 0 0 4px var(--ui-color);
+        z-index: 120;
+        transition: all 0.3s ease;
+      }
+      #subtitlesToggle:hover {
+        background: var(--ui-color);
+        color: #000;
+        transform: scale(1.05);
+      }
+      #subtitlesDrawer {
+        position: fixed;
+        left: 10px;
+        bottom: -400px;
+        width: 400px;
+        height: 400px;
+        background: rgba(0, 0, 0, 0.9);
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 12px var(--ui-color);
+        padding: 0.5rem;
+        transition: bottom 0.4s ease;
+        z-index: 110;
+        display: flex;
+        flex-direction: column;
+      }
+      #subtitlesDrawer.open {
+        bottom: 40px;
+      }
+
+      #subtitlesDrawer h2 {
+        font-size: 0.9rem;
+        border-bottom: 1px solid var(--ui-color);
+        text-align: center;
+        margin-bottom: 5px;
+      }
+
+      /* MODAL COMMENT VIEWER */
+      #modalOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 400;
+        color: var(--ui-color);
+        font-family: "Share Tech Mono", monospace;
+      }
+      #modalOverlay.hidden {
+        display: none;
+      }
+      #modalContent {
+        width: 70%;
+        max-height: 80%;
+        background: rgba(0, 0, 0, 0.95);
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 12px var(--ui-color);
+        padding: 1rem;
+        overflow-y: auto;
+      }
+      #modalTitle {
+        text-align: center;
+      }
+      #modalComments {
+        max-height: 60vh;
+        overflow-y: auto;
+        border-top: 1px solid var(--ui-color);
+        margin-top: 10px;
+        font-size: 0.85rem;
+        line-height: 1.2rem;
+      }
+      #modalSearch {
+        width: 100%;
+        margin-top: 8px;
+        padding: 4px;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+      }
+      #modalClose {
+        margin-top: 10px;
+        background: var(--ui-color);
+        color: #000;
+        border: none;
+        padding: 6px 12px;
+        font-family: inherit;
+        cursor: pointer;
+      }
+
+      /* SETTINGS OVERLAY */
+      #settingsOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 400;
+        color: var(--ui-color);
+        font-family: "Share Tech Mono", monospace;
+      }
+      #settingsOverlay.hidden {
+        display: none;
+      }
+      #settingsContent {
+        width: 500px;
+        max-height: 80%;
+        background: rgba(0, 0, 0, 0.95);
+        border: 1px solid var(--ui-color);
+        box-shadow: 0 0 12px var(--ui-color);
+        padding: 1rem;
+        overflow-y: auto;
+      }
+      #settingsContent h2 {
+        text-align: center;
+        margin-top: 0;
+        border-bottom: 1px solid var(--ui-color);
+        padding-bottom: 10px;
+      }
+      #settingsContent button {
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid var(--ui-color);
+        color: var(--ui-color);
+        padding: 6px 12px;
+        font-family: inherit;
+        cursor: pointer;
+        flex: 1;
+      }
+      #settingsContent button:hover {
+        background: var(--ui-color);
+        color: #000;
+      }
+      #settingsContent input[type="checkbox"] {
+        accent-color: var(--ui-color);
+        cursor: pointer;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>📊 RETRO SOCIAL ANALYTICS</h1>
+
+    <!-- === VIDEO PREVIEW SECTION === -->
+    <div id="videoSection">
+      <button id="toggleVideo">🎥 Hide Video</button>
+      <iframe
+        id="videoFrame"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+      ></iframe>
+    </div>
+
+    <!-- CONTROLS -->
+    <div id="controls">
+      <select id="platform">
+        <option value="youtube">YouTube</option>
+        <option value="vk">VK</option>
+      </select>
+      <input id="videoUrl" placeholder="Video or Short URL..." size="40" />
+      <input id="limitInput" type="number" value="100" min="10" max="500" title="Limit comments" />
+      <input id="colorPicker" type="color" value="#00ff99" />
+      <button id="langToggle">🇬🇧</button>
+      <button id="settingsBtn">⚙️ Settings</button>
+      <button id="fetchBtn">▶ Analyze</button>
+    </div>
+
+    <div id="statusLine">💤 Idle — waiting for input</div>
+
+    <!-- PANELS -->
+    <div id="main-panels">
+      <div class="panel" id="panel-words">
+        <h2>TOP WORDS <span class="expand">⤡</span></h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <div id="trashZone" style="opacity: 0; transition: opacity 0.3s; pointer-events: none; display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--ui-color);">
+            <span style="font-size: 1.2rem;">🗑️</span>
+            <span>Drop here to remove</span>
+          </div>
+          <button id="exportCSVBtn" style="background: rgba(0, 0, 0, 0.8); border: 1px solid var(--ui-color); color: var(--ui-color); padding: 3px 8px; font-family: inherit; font-size: 0.75rem; cursor: pointer;">
+            📥 Export CSV
+          </button>
+        </div>
+        <div id="chartContainer" style="position: relative;">
+          <canvas id="wordChart"></canvas>
+        </div>
+        <div style="font-size: 0.7rem; color: var(--ui-color); margin-top: 5px; opacity: 0.7;">
+          💡 Drag a bar to the trash to remove it from analysis
+        </div>
+      </div>
+
+      <div class="panel" id="panel-comments">
+        <h2>COMMENTS <span class="expand">⤡</span></h2>
+        <div id="commentsList"></div>
+      </div>
+    </div>
+
+    <!-- TRENDING DRAWER -->
+    <div id="trendingToggle">🔥 TRENDING</div>
+    <div id="trendingDrawer">
+      <h2>🔥 TRENDING VIDEOS</h2>
+      <div style="margin-bottom: 10px; display: flex; gap: 5px; align-items: center;">
+        <select id="trendingRegion" style="background: rgba(0, 0, 0, 0.8); border: 1px solid var(--ui-color); color: var(--ui-color); padding: 3px 5px; font-family: inherit; font-size: 0.75rem;">
+          <option value="US">🇺🇸 US</option>
+          <option value="PL">🇵🇱 PL</option>
+          <option value="RU">🇷🇺 RU</option>
+          <option value="GB">🇬🇧 GB</option>
+          <option value="DE">🇩🇪 DE</option>
+          <option value="FR">🇫🇷 FR</option>
+        </select>
+        <button id="loadTrendingBtn" style="background: rgba(0, 0, 0, 0.8); border: 1px solid var(--ui-color); color: var(--ui-color); padding: 3px 8px; font-family: inherit; font-size: 0.75rem; cursor: pointer; flex: 1;">
+          🔥 Load Trending
+        </button>
+      </div>
+      <div id="trendingStatus" style="font-size: 0.75rem; color: var(--ui-color); opacity: 0.7; margin-bottom: 5px; text-align: center;"></div>
+      <div id="trendingList" style="flex: 1; overflow-y: auto; font-size: 0.8rem;"></div>
+    </div>
+
+    <!-- LOG DRAWER -->
+    <div id="logToggle">📟 LOGS</div>
+    <div id="logDrawer">
+      <h2>LOG TERMINAL</h2>
+      <div id="logArea"></div>
+    </div>
+
+    <!-- SUBTITLES DRAWER -->
+    <div id="subtitlesToggle">📝 SUBTITLES <span style="font-size: 0.7rem; opacity: 0.8;">(YouTube only)</span></div>
+    <div id="subtitlesDrawer">
+      <h2>📝 VIDEO SUBTITLES</h2>
+      <div style="margin-bottom: 10px;">
+        <button id="analyzeSubtitlesBtn" style="background: rgba(0, 0, 0, 0.8); border: 1px solid var(--ui-color); color: var(--ui-color); padding: 5px 10px; font-family: inherit; font-size: 0.85rem; cursor: pointer; width: 100%;">
+          🎬 Analyze Video Subtitles
+        </button>
+      </div>
+      <div id="subtitlesStatus" style="font-size: 0.75rem; color: var(--ui-color); opacity: 0.7; margin-bottom: 5px; text-align: center;"></div>
+      <div id="subtitlesList" style="flex: 1; overflow-y: auto; font-size: 0.8rem;"></div>
+    </div>
+
+    <!-- MODAL COMMENT VIEWER -->
+    <div id="modalOverlay" class="hidden">
+      <div id="modalContent">
+        <h2 id="modalTitle">
+          Comments containing: <span id="modalWord"></span>
+        </h2>
+        <input id="modalSearch" placeholder="🔍 Filter comments..." />
+        <div id="modalComments"></div>
+        <button id="modalClose">✖ Close</button>
+      </div>
+    </div>
+
+    <!-- SETTINGS OVERLAY -->
+    <div id="settingsOverlay" class="hidden">
+      <div id="settingsContent">
+        <h2>⚙️ SETTINGS</h2>
+        <div style="margin: 10px 0;">
+          <label style="display: block; margin-bottom: 5px;">Stopwords (comma-separated):</label>
+          <textarea id="stopwordsInput" style="width: 100%; min-height: 80px; background: rgba(0,0,0,0.7); border: 1px solid var(--ui-color); color: var(--ui-color); font-family: inherit; padding: 5px;"></textarea>
+        </div>
+        <div style="margin: 10px 0;">
+          <label style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="humToggle" checked />
+            <span>Enable CRT hum sound</span>
+          </label>
+        </div>
+        <div style="margin: 10px 0;">
+          <label id="wordLengthLabel" style="display: block; margin-bottom: 5px;">Word length filter:</label>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="number" id="minWordLength" min="1" max="20" value="2" style="width: 80px; background: rgba(0,0,0,0.7); border: 1px solid var(--ui-color); color: var(--ui-color); font-family: inherit; padding: 4px;" />
+            <span>to</span>
+            <input type="number" id="maxWordLength" min="1" max="100" value="50" style="width: 80px; background: rgba(0,0,0,0.7); border: 1px solid var(--ui-color); color: var(--ui-color); font-family: inherit; padding: 4px;" />
+            <span style="font-size: 0.85rem; opacity: 0.8;">characters</span>
+          </div>
+        </div>
+        <div style="margin: 10px 0;">
+          <label id="filterLanguageLabel" style="display: block; margin-bottom: 5px;">Filter by language (remove words from other languages):</label>
+          <select id="filterLanguage" style="width: 100%; background: rgba(0,0,0,0.7); border: 1px solid var(--ui-color); color: var(--ui-color); font-family: inherit; padding: 4px;">
+            <option value="">No filtering</option>
+            <option value="en">English only</option>
+            <option value="pl">Polish only</option>
+            <option value="ru">Russian only</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button id="saveSettings">💾 Save</button>
+          <button id="cancelSettings">❌ Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/gui.js"></script>
+  </body>
+</html>

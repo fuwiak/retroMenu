@@ -1,0 +1,36 @@
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.env
+.venv/
+
+# Python packaging / build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs
+*.log
+logs/
+
+# IDE / editor settings
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Node / frontend artifacts
+retro-terrain/node_modules/
+retro-terrain/dist/
+retro-terrain/dist-ssr/
+retro-terrain/.vite/
+
+# Local environment files
+*.local
+.env.local
+retro-terrain/.env*
