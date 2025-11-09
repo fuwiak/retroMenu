@@ -153,6 +153,64 @@ els.toggleVideo.addEventListener("click", () => {
 const YT_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 const YT_INNERTUBE_KEY = import.meta.env.VITE_YOUTUBEI_KEY || YT_KEY;
 
+async function fetchYouTubeComments(videoId, limit = 100) {
+  if (!YT_KEY) {
+    throw new Error('YouTube API key not configured');
+  }
+
+  const collected = [];
+  let nextPageToken = '';
+  const perPage = 100;
+
+  while (collected.length < limit) {
+    const remaining = Math.min(perPage, limit - collected.length);
+    const params = new URLSearchParams({
+      part: 'snippet',
+      videoId,
+      maxResults: remaining.toString(),
+      key: YT_KEY,
+      textFormat: 'plainText',
+      order: 'relevance',
+    });
+    if (nextPageToken) {
+      params.set('pageToken', nextPageToken);
+    }
+
+    const url = `https://www.googleapis.com/youtube/v3/commentThreads?${params.toString()}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const message = `${response.status} ${response.statusText}`;
+      throw new Error(`YouTube comments API error: ${message}`);
+    }
+
+    const data = await response.json();
+    const items = Array.isArray(data.items) ? data.items : [];
+    for (const item of items) {
+      const topComment = item?.snippet?.topLevelComment?.snippet;
+      if (!topComment) {
+        continue;
+      }
+      collected.push({
+        text: topComment.textDisplay || topComment.textOriginal || '',
+        author: topComment.authorDisplayName || 'Unknown',
+        publishedAt: new Date(topComment.publishedAt || Date.now()),
+        timestamp: new Date(topComment.publishedAt || Date.now()).getTime(),
+      });
+      if (collected.length >= limit) {
+        break;
+      }
+    }
+
+    if (!data.nextPageToken || collected.length >= limit) {
+      break;
+    }
+    nextPageToken = data.nextPageToken;
+  }
+
+  log(`Fetched ${collected.length} comments for ${videoId}`);
+  return collected;
+}
+
 function getPreferredSubtitleLanguages() {
   if (Array.isArray(userSettings.subtitleLanguages) && userSettings.subtitleLanguages.length > 0) {
     return userSettings.subtitleLanguages;
