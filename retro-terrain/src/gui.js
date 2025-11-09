@@ -64,6 +64,7 @@ let userSettings = {
   minWordLength: 2,
   maxWordLength: 50,
   filterLanguage: "", // Empty = no filtering, "en", "pl", "ru"
+  subtitleLanguages: [], // New: for youtubei
 };
 
 // ========== AUDIO ==========
@@ -150,40 +151,154 @@ els.toggleVideo.addEventListener("click", () => {
 
 // ========== YOUTUBE COMMENTS ==========
 const YT_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+const YT_INNERTUBE_KEY = import.meta.env.VITE_YOUTUBEI_KEY || YT_KEY;
 
-async function fetchYouTubeComments(videoId, limit = 100) {
-  const comments = [];
-  let nextPage = "";
-  while (comments.length < limit) {
-    const url = new URL("https://www.googleapis.com/youtube/v3/commentThreads");
-    url.search = new URLSearchParams({
-      part: "snippet",
-      videoId,
-      maxResults: 100,
-      key: YT_KEY,
-      pageToken: nextPage,
-      textFormat: "plainText",
-      orderBy: "time", // Sort by time to get chronological order
-    });
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    const batch = data.items.map((i) => ({
-      text: i.snippet.topLevelComment.snippet.textDisplay,
-      publishedAt: new Date(i.snippet.topLevelComment.snippet.publishedAt),
-      timestamp: new Date(i.snippet.topLevelComment.snippet.publishedAt).getTime(),
-    }));
-    comments.push(...batch);
-    if (!data.nextPageToken) break;
-    nextPage = data.nextPageToken;
+function getPreferredSubtitleLanguages() {
+  if (Array.isArray(userSettings.subtitleLanguages) && userSettings.subtitleLanguages.length > 0) {
+    return userSettings.subtitleLanguages;
   }
-  return comments.slice(0, limit);
+  return ['en', 'pl', 'ru'];
 }
 
-// ========== YOUTUBE SUBTITLES ==========
 async function fetchYouTubeSubtitles(videoId) {
-  // Try different languages including auto-generated
-  const languages = ['en', 'pl', 'ru'];
+  const languages = getPreferredSubtitleLanguages();
+
+  // In development, call youtubei directly to avoid running the backend server.
+  if (import.meta.env.DEV) {
+    const direct = await fetchSubtitlesViaYoutubei(videoId, languages);
+    if (direct && direct.length > 0) {
+      return direct;
+    }
+  }
+
+  // Primary path: call backend proxy which uses youtubei with yt-dlp fallback.
+  try {
+    const endpoint = `/api/subtitles/${videoId}?langs=${encodeURIComponent(languages.join(','))}`;
+    const res = await fetch(endpoint, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    if (res.ok) {
+      const payload = await res.json();
+      if (Array.isArray(payload?.tracks) && payload.tracks.length > 0) {
+        const combined = payload.tracks.flatMap((track) => Array.isArray(track?.segments) ? track.segments : []);
+        if (combined.length > 0) {
+          log(`📝 Loaded ${combined.length} subtitle segments via ${payload.source || 'server proxy'}`);
+          return combined.sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+        }
+      }
+    } else {
+      log(`⚠️ Subtitle service returned HTTP ${res.status}`);
+    }
+  } catch (err) {
+    log(`⚠️ Subtitle service failed: ${err?.message || err}`);
+  }
+
+  // Fallback to direct youtubei call even in production.
+  try {
+    const direct = await fetchSubtitlesViaYoutubei(videoId, languages);
+    if (direct && direct.length > 0) {
+      return direct;
+    }
+  } catch (err) {
+    log(`⚠️ youtubei fallback failed: ${err?.message || err}`);
+  }
+
+  // Final fallback: legacy timedtext probing.
+  return await legacyFetchYouTubeSubtitles(videoId, languages);
+}
+
+async function fetchSubtitlesViaYoutubei(videoId, languages = ['en', 'pl', 'ru']) {
+  if (!YT_INNERTUBE_KEY) {
+    log('⚠️ youtubei key not configured; skipping direct youtubei fetch');
+    return null;
+  }
+
+  try {
+    const body = {
+      context: {
+        client: {
+          hl: 'en',
+          gl: 'US',
+          clientName: 'WEB',
+          clientVersion: '2.20241109.00.00',
+          utcOffsetMinutes: -new Date().getTimezoneOffset(),
+        },
+      },
+      videoId,
+      contentCheckOk: true,
+      racyCheckOk: true,
+    };
+
+    const playerRes = await fetch(`https://youtubei.googleapis.com/youtubei/v1/player?key=${YT_INNERTUBE_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!playerRes.ok) {
+      log(`⚠️ youtubei player returned HTTP ${playerRes.status}`);
+      return null;
+    }
+
+    const playerData = await playerRes.json();
+    const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (!Array.isArray(tracks) || tracks.length === 0) {
+      log('⚠️ youtubei response did not include caption tracks');
+      return null;
+    }
+
+    const langSet = new Set(languages.map((l) => l.toLowerCase()));
+    const selectedTracks = tracks.filter((track) => {
+      const code = (track.languageCode || '').toLowerCase();
+      const vss = (track.vssId || '').toLowerCase().replace(/^\./, '');
+      return langSet.has(code) || langSet.has(vss);
+    });
+
+    const tracksToUse = selectedTracks.length > 0 ? selectedTracks : tracks.slice(0, 1);
+    const subtitles = [];
+
+    for (const track of tracksToUse) {
+      try {
+        const trackUrl = new URL(track.baseUrl);
+        trackUrl.searchParams.set('fmt', 'json3');
+        const captionRes = await fetch(trackUrl.toString(), {
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        if (!captionRes.ok) {
+          log(`⚠️ Track fetch failed (${track.languageCode || track.vssId}): HTTP ${captionRes.status}`);
+          continue;
+        }
+        const captionJson = await captionRes.json().catch(() => null);
+        if (!captionJson?.events) {
+          continue;
+        }
+        const parsed = parseSubtitles(captionJson.events);
+        if (parsed.length > 0) {
+          subtitles.push(...parsed);
+        }
+      } catch (trackErr) {
+        log(`⚠️ Fetching track failed: ${trackErr?.message || trackErr}`);
+      }
+    }
+
+    if (subtitles.length > 0) {
+      log(`📝 Fetched ${subtitles.length} subtitle segments via youtubei`);
+      return subtitles.sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+    }
+  } catch (err) {
+    log(`⚠️ youtubei request failed: ${err?.message || err}`);
+  }
+
+  return null;
+}
+
+async function legacyFetchYouTubeSubtitles(videoId, languages = ['en', 'pl', 'ru']) {
   
   // Helper to parse response safely
   const tryParseJSON = async (res) => {

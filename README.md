@@ -21,6 +21,7 @@ retroMenu/
 - Located in `retro-terrain/`
 - Uses Vite + vanilla JS modules
 - Provides trending fetchers, comment analysis and CSV exports
+- Subtitle endpoint `/api/subtitles/:videoId` is served by an Express wrapper that calls youtubei first and falls back to `yt-dlp`
 - Deployment is containerised via the root `Dockerfile`
 - Provide API tokens via `.env` in `retro-terrain/` (see `.env.example`)
 
@@ -31,6 +32,12 @@ npm install
 npm run dev
 ```
 The site is served on `http://localhost:5173` by default.
+
+To run the production server locally after building:
+```bash
+npm run build
+npm run start
+```
 
 ### Production build
 ```bash
@@ -57,13 +64,15 @@ The repository ships with a multistage `Dockerfile` that builds the Vite app and
 ```bash
 docker build -t retro-terrain . \
   --build-arg VITE_YOUTUBE_API_KEY=your_key \
+  --build-arg VITE_YOUTUBEI_KEY=your_innertube_key \
   --build-arg VITE_VK_TOKEN=optional_vk_token
 ```
 
 For Railway:
 1. Push the repo with the Dockerfile and railway config.
 2. Set `PORT=8080` (or another value) in Railway variables.
-3. Redeploy to obtain a public domain.
+3. Provide `VITE_YOUTUBE_API_KEY` (and optionally `VITE_YOUTUBEI_KEY`, `VITE_VK_TOKEN`) in Railway variables.
+4. Redeploy to obtain a public domain.
 
 ---
 

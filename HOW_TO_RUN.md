@@ -15,9 +15,16 @@ npm install    # First time only
 npm run dev
 ```
 
-Create a `.env` (or `.env.local`) from `retro-terrain/.env.example` and provide required API keys (e.g. `VITE_YOUTUBE_API_KEY`).
+Create a `.env` (or `.env.local`) from `retro-terrain/.env.example` and provide required API keys (e.g. `VITE_YOUTUBE_API_KEY`, `VITE_YOUTUBEI_KEY`).
 
 Then open your browser to: **http://localhost:5173**
+
+### Production-like run
+```bash
+cd retro-terrain
+npm run build
+npm run start   # serves dist/ and exposes /api/subtitles
+```
 
 ---
 
@@ -89,6 +96,7 @@ The Docker setup focuses on the Vite analytics app (`retro-terrain`). CLI utilit
 ```bash
 docker build -t retro-terrain . \
   --build-arg VITE_YOUTUBE_API_KEY=your_key \
+  --build-arg VITE_YOUTUBEI_KEY=your_innertube_key \
   --build-arg VITE_VK_TOKEN=optional_vk_token
 docker run --rm -p 8080:8080 retro-terrain
 ```
@@ -103,7 +111,8 @@ docker-compose up --build
 1. Push the repository with the new `Dockerfile` **and `railway.toml`** to GitHub.
 2. Create a new Railway project using the "Deploy from GitHub" workflow.
 3. Railway will build the Docker image automatically (the `railway.toml` forces the Docker builder). Ensure the `PORT` variable is set (default `8080`).
-4. After the build succeeds, Railway will expose the generated domain serving the static site.
+4. Provide the required keys (`VITE_YOUTUBE_API_KEY`, optional `VITE_YOUTUBEI_KEY`, `VITE_VK_TOKEN`).
+5. After the build succeeds, Railway will expose the generated domain serving the static site.
 
 **Environment variables:** Provide any API keys (e.g., `YT_API_KEY`, `VK_TOKEN`) as Railway environment variables and reference them in the web app or via build-time injection as needed.
 

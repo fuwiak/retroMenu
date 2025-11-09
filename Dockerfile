@@ -7,10 +7,12 @@ WORKDIR /app
 # Build arguments for Vite environment variables
 ARG VITE_YOUTUBE_API_KEY=""
 ARG VITE_VK_TOKEN=""
+ARG VITE_YOUTUBEI_KEY=""
 
 # Expose them as environment variables for npm scripts
 ENV VITE_YOUTUBE_API_KEY=${VITE_YOUTUBE_API_KEY}
 ENV VITE_VK_TOKEN=${VITE_VK_TOKEN}
+ENV VITE_YOUTUBEI_KEY=${VITE_YOUTUBEI_KEY}
 
 # Install dependencies
 COPY retro-terrain/package.json retro-terrain/package-lock.json ./
@@ -34,15 +36,25 @@ RUN npm run build
 FROM node:22.12.0-alpine
 WORKDIR /app
 
+# Re-declare build args for runtime stage access
+ARG VITE_YOUTUBE_API_KEY=""
+ARG VITE_VK_TOKEN=""
+ARG VITE_YOUTUBEI_KEY=""
+
 ENV NODE_ENV=production \
-    PORT=8080
+    PORT=8080 \
+    VITE_YOUTUBE_API_KEY=${VITE_YOUTUBE_API_KEY} \
+    VITE_VK_TOKEN=${VITE_VK_TOKEN} \
+    VITE_YOUTUBEI_KEY=${VITE_YOUTUBEI_KEY}
 
-# Install a lightweight static file server
-RUN npm install -g serve
+# Install production dependencies for the server
+COPY retro-terrain/package.json retro-terrain/package-lock.json ./
+RUN npm ci --omit=dev
 
-# Copy built assets
+# Copy server and built assets
 COPY --from=builder /app/dist ./dist
+COPY retro-terrain/server ./server
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT}"]
+CMD ["node", "server/index.mjs"]
