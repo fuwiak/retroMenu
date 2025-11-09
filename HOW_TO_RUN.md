@@ -87,7 +87,9 @@ The Docker setup focuses on the Vite analytics app (`retro-terrain`). CLI utilit
 
 ### Build and run locally with Docker
 ```bash
-docker build -t retro-terrain .
+docker build -t retro-terrain . \
+  --build-arg VITE_YOUTUBE_API_KEY=your_key \
+  --build-arg VITE_VK_TOKEN=optional_vk_token
 docker run --rm -p 8080:8080 retro-terrain
 ```
 The site will be available at `http://localhost:8080`.

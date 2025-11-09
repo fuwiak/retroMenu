@@ -55,8 +55,9 @@ python advanced_social_stats.py --help
 The repository ships with a multistage `Dockerfile` that builds the Vite app and serves static assets with `serve`. A `railway.toml` ensures Railway uses the Docker builder.
 
 ```bash
-docker build -t retro-terrain .
-docker run --rm -p 8080:8080 retro-terrain
+docker build -t retro-terrain . \
+  --build-arg VITE_YOUTUBE_API_KEY=your_key \
+  --build-arg VITE_VK_TOKEN=optional_vk_token
 ```
 
 For Railway:
