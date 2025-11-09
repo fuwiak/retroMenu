@@ -1,6 +1,6 @@
 # How to Run RetroMenu Projects
 
-This workspace contains **two separate projects**:
+This workspace now consists of:
 
 ## 1. JavaScript/Vite App (Social Analytics)
 
@@ -17,29 +17,27 @@ npm run dev
 
 Then open your browser to: **http://localhost:5173**
 
-**Status:** ✅ Currently running in background
-
 ---
 
-## 2. Python/Pyxel App (Retro Menu Game)
+## 2. Python Utilities (CLI scripts)
 
-**Location:** Root directory
+**Location:** project root (e.g. `advanced_social_stats.py`, `daily_views_report.py`)
 
-**What it is:** A retro menu game built with Pyxel
-
-**How to run:**
+**How to use:**
 ```bash
-source venv/bin/activate  # Activate virtual environment
-python main.py
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python advanced_social_stats.py --help
 ```
 
-**Note:** Uses Node version 22.12.0 via nvm
+Install only the dependencies you need for the utility you run.
 
 ---
 
 ## Quick Commands
 
-### For JavaScript app:
+### JavaScript app
 ```bash
 cd retro-terrain
 npm run dev      # Development server
@@ -47,10 +45,10 @@ npm run build    # Production build
 npm run preview  # Preview production build
 ```
 
-### For Python app:
+### Python utilities
 ```bash
-source venv/bin/activate
-python main.py
+source .venv/bin/activate
+python advanced_social_stats.py --help
 ```
 
 ### Kill running processes:
@@ -74,16 +72,16 @@ kill [PID]
 - Export to CSV
 - Language filtering
 
-**Python App:**
-- State machine-based architecture
-- Multiple scenes (Menu, Video Stats, Terrain Builder)
-- Retro Pyxel graphics
+**Python Utilities:**
+- Social media statistics collection (YouTube, VK, Instagram)
+- Daily view reports
+- Telegram bot integrations
 
 ---
 
 ## Docker & Railway Deployment
 
-The Docker setup focuses on the Vite analytics app (`retro-terrain`). The Pyxel game requires a desktop environment and is not containerized for Railway.
+The Docker setup focuses on the Vite analytics app (`retro-terrain`). CLI utilities are run locally and are not containerised.
 
 ### Build and run locally with Docker
 ```bash
