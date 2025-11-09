@@ -15,6 +15,8 @@ npm install    # First time only
 npm run dev
 ```
 
+Create a `.env` (or `.env.local`) from `retro-terrain/.env.example` and provide required API keys (e.g. `VITE_YOUTUBE_API_KEY`).
+
 Then open your browser to: **http://localhost:5173**
 
 ---

@@ -22,6 +22,7 @@ retroMenu/
 - Uses Vite + vanilla JS modules
 - Provides trending fetchers, comment analysis and CSV exports
 - Deployment is containerised via the root `Dockerfile`
+- Provide API tokens via `.env` in `retro-terrain/` (see `.env.example`)
 
 ### Local development
 ```bash

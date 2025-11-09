@@ -34,3 +34,4 @@ retro-terrain/.vite/
 *.local
 .env.local
 retro-terrain/.env*
+!retro-terrain/.env.example
